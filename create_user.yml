@@ -1,0 +1,35 @@
+- name: Create a user called 'devops' on all managed nodes
+  hosts: all
+  become: true
+
+  vars:
+    user_name: devops
+    user_password: "{{ 'DevOps123' | password_hash('sha512') }}"
+
+  tasks:
+    - name: Ensure the user exists
+      user:
+        name: "{{ user_name }}"
+        comment: "DevOps User"
+        password: "{{ user_password }}"
+        shell: /bin/bash
+        groups: sudo
+        append: yes
+        state: present
+        create_home: yes
+
+    - name: Ensure the .ssh directory exists
+      file:
+        path: "/home/{{ user_name }}/.ssh"
+        state: directory
+        owner: "{{ user_name }}"
+        group: "{{ user_name }}"
+        mode: '0700'
+
+    - name: Add authorized SSH key for devops user
+      copy:
+        content: "{{ lookup('file', 'devops_id_rsa.pub') }}"
+        dest: "/home/{{ user_name }}/.ssh/authorized_keys"
+        owner: "{{ user_name }}"
+        group: "{{ user_name }}"
+        mode: '0600'
